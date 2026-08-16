@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="description" content="واجهة استعلام تجريبية مستقلة غير تابعة لأي جهة حكومية." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23245b85'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='30' fill='white'%3ED%3C/text%3E%3C/svg%3E" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/index.css" />
+  <title>منصة استعلام تجريبية</title>
+  <style>
+    .demo-notice{position:relative;z-index:9999;background:#fff4ce;color:#553c00;border-bottom:1px solid #e5c34c;padding:11px 16px;text-align:center;font-family:Cairo,sans-serif;font-weight:700}
+    .demo-brand{display:flex;align-items:center;justify-content:center;min-width:128px;height:48px;padding:0 18px;border-radius:12px;background:#f1f5f9;color:#245b85;font-family:Cairo,sans-serif;font-weight:900;font-size:18px;letter-spacing:.2px}
+    .safe-footer{background:#153b5a;color:#fff;padding:28px 18px;text-align:center;font-family:Cairo,sans-serif}
+    .safe-footer p{margin:5px 0;color:#f0f3f8}
+    .safe-footer strong{font-size:18px}
+    .header .navbar-brand{text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="demo-notice" role="status">نموذج تجريبي غير رسمي — غير تابع لوزارة الصحة أو لأي جهة حكومية، ولا يُستخدم لإثبات مستندات رسمية.</div>
+  <div id="root">
+    <div class="App">
+      <main>
+        <div class="app-header">
+          <nav class="header navbar navbar-expand-lg navbar-light">
+            <div class="header-inner">
+              <div class="nav-container">
+                <a class="navbar-brand" href="/#/inquiries/slenquiry"><div class="demo-brand">استعلام تجريبي</div></a>
+                <div class="white justify-content-between navbar-collapse collapse show" id="responsive-navbar-nav">
+                  <div class="justify-content-between navbar-nav">
+                    <a class="link nav-link active" href="/#/inquiries/slenquiry">الاستعلام</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </div>
+
+        <div class="page-content-breadcrumb-row">
+          <div class="warp-breadcrumb" data-testid="breadcrumb">
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/#/inquiries/slenquiry">الرئيسية</a></li>
+                <li class="breadcrumb-item"><a href="/#/inquiries/slenquiry">الاستعلامات</a></li>
+                <li class="breadcrumb-item active" aria-current="page">الإجازات المرضية — تجريبي</li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+
+        <div class="inner-page inquiries-container">
+          <h1 class="heading">الاستعلام التجريبي</h1>
+          <p class="sub-heading">واجهة بحث مستقلة لبياناتك الخاصة. النتائج هنا ليست تحققًا حكوميًا أو اعتمادًا رسميًا.</p>
+          <div class="row justify-content-center mt-1">
+            <div class="col-md-5 p-4" id="inquiry-form">
+              <div id="error-message" class="mt-2" aria-live="polite"></div>
+              <div class="form-group">
+                <input type="text" id="service-code" maxlength="20" placeholder="رمز الخدمة" class="form-control" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label></label>
+                <input type="text" id="identity-number" maxlength="10" inputmode="numeric" pattern="\d*" placeholder="رقم الهوية / الإقامة" class="form-control" autocomplete="off" />
+              </div>
+              <button class="btn btn-primary mt-3" id="search-btn" type="button">استعلام</button>
+            </div>
+            <div id="result-area" style="display:none" class="mt-4"></div>
+          </div>
+        </div>
+
+        <footer class="safe-footer">
+          <strong>نموذج استعلام تجريبي</strong>
+          <p>غير تابع لأي جهة حكومية، ولا يدّعي الاعتماد من وزارة الصحة.</p>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const requiredHash = '#/inquiries/slenquiry';
+      if (window.location.hash !== requiredHash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search + requiredHash);
+      }
+
+      const searchButton = document.getElementById('search-btn');
+      const serviceCodeInput = document.getElementById('service-code');
+      const identityNumberInput = document.getElementById('identity-number');
+      const errorDiv = document.getElementById('error-message');
+      const resultArea = document.getElementById('result-area');
+      const inquiryForm = document.getElementById('inquiry-form');
+
+      const showInquiryError = (message) => {
+        const p = document.createElement('p');
+        p.className = 'alert alert-danger';
+        p.textContent = message;
+        errorDiv.replaceChildren(p);
+      };
+
+      async function runLeaveInquiry() {
+        const code = serviceCodeInput.value.trim();
+        const identityNumber = identityNumberInput.value.trim();
+        errorDiv.replaceChildren();
+        resultArea.style.display = 'none';
+        resultArea.innerHTML = '';
+
+        if (!code) {
+          showInquiryError('فضلاً اكتب رمز الخدمة');
+          serviceCodeInput.focus();
+          return;
+        }
+        if (!identityNumber) {
+          showInquiryError('فضلاً اكتب رقم الهوية / الإقامة');
+          identityNumberInput.focus();
+          return;
+        }
+
+        searchButton.disabled = true;
+        const originalText = searchButton.textContent;
+        searchButton.textContent = 'جارٍ الاستعلام...';
+
+        try {
+          const body = new URLSearchParams({ code, id: identityNumber });
+          const response = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'Accept': 'application/json'
+            },
+            body
+          });
+          const data = await response.json().catch(() => { throw new Error('رد الخادم غير صالح'); });
+          if (!response.ok) throw new Error(data.msg || 'تعذّر تنفيذ الاستعلام');
+
+          if (data.status === 'ok') {
+            inquiryForm.style.display = 'none';
+            resultArea.style.display = '';
+            resultArea.innerHTML = data.html || '';
+          } else if (data.status === 'notfound') {
+            showInquiryError('لا يوجد نتائج');
+          } else {
+            showInquiryError(data.msg || 'حدث خطأ غير متوقع');
+          }
+        } catch (error) {
+          showInquiryError(error.message || 'حدث خطأ في الاتصال بالخادم');
+        } finally {
+          searchButton.disabled = false;
+          searchButton.textContent = originalText;
+        }
+      }
+
+      searchButton.addEventListener('click', runLeaveInquiry);
+      [serviceCodeInput, identityNumberInput].forEach((input) => {
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            runLeaveInquiry();
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

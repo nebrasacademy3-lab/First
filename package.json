@@ -1,0 +1,16 @@
+{
+  "name": "netlify-inquiry-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build-check.mjs",
+    "check": "node --check netlify/functions/search.mjs && node scripts/build-check.mjs"
+  },
+  "dependencies": {
+    "mysql2": "^3.14.4"
+  }
+}
