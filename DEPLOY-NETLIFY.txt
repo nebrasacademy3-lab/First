@@ -10,8 +10,11 @@ NETLIFY DEPLOY NOTES
 
 3) In Netlify:
    Project configuration -> Environment variables
-   Add:
-     MYSQL_PUBLIC_URL = <the Railway MYSQL_PUBLIC_URL value>
+   Add (preferred):
+     MYSQL_PUBLIC_URL = <the exact Railway MYSQL_PUBLIC_URL value>
+
+   IMPORTANT: the Netlify variable scope must include Functions.
+   Do not copy MYSQLHOST if it is *.railway.internal.
 
    Optional:
      ALLOWED_ORIGINS = https://your-domain.example,https://your-site.netlify.app

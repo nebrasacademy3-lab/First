@@ -69,27 +69,59 @@ function parseDatabaseUrl(value, name) {
   return { host, port, user, password, database };
 }
 
-function databaseConfigFromEnvironment() {
-  // For Netlify -> Railway, MYSQL_PUBLIC_URL is the preferred variable.
-  const publicUrl = envValue("MYSQL_PUBLIC_URL") || envValue("SEARCH_DB_URL");
-  if (publicUrl) return parseDatabaseUrl(publicUrl, "MYSQL_PUBLIC_URL/SEARCH_DB_URL");
+function isRailwayPrivateHost(host) {
+  const value = String(host || "").trim().toLowerCase();
+  return value.endsWith(".railway.internal") || value === "railway.internal";
+}
 
+function databaseConfigFromEnvironment() {
+  // Netlify runs OUTSIDE Railway's private network. Always prefer a public TCP-proxy URL.
+  // Accept both names currently encountered in Railway projects and a project-specific alias.
+  const publicCandidates = [
+    ["MYSQL_PUBLIC_URL", envValue("MYSQL_PUBLIC_URL")],
+    ["DATABASE_PUBLIC_URL", envValue("DATABASE_PUBLIC_URL")],
+    ["SEARCH_DB_URL", envValue("SEARCH_DB_URL")],
+  ];
+  for (const [name, value] of publicCandidates) {
+    if (value) return parseDatabaseUrl(value, name);
+  }
+
+  // Also accept a full DATABASE_URL/MYSQL_URL when it already points at a public proxy.
+  const urlCandidates = [
+    ["MYSQL_URL", envValue("MYSQL_URL")],
+    ["DATABASE_URL", envValue("DATABASE_URL")],
+  ];
+  for (const [name, value] of urlCandidates) {
+    if (!value) continue;
+    const parsed = parseDatabaseUrl(value, name);
+    if (!isRailwayPrivateHost(parsed.host)) return parsed;
+  }
+
+  // Explicit public split variables, useful when the public URL was decomposed manually.
+  const publicHost = envValue("MYSQL_PUBLIC_HOST") || envValue("RAILWAY_TCP_PROXY_DOMAIN");
+  const publicPortRaw = envValue("MYSQL_PUBLIC_PORT") || envValue("RAILWAY_TCP_PROXY_PORT");
+  const database = envValue("MYSQLDATABASE") || envValue("MYSQL_DATABASE") || envValue("MYSQL_PUBLIC_DATABASE");
+  const user = envValue("MYSQLUSER") || envValue("MYSQL_USER") || envValue("MYSQL_PUBLIC_USER");
+  const password = envValue("MYSQLPASSWORD") || envValue("MYSQL_PASSWORD") || envValue("MYSQL_PUBLIC_PASSWORD");
+  if (publicHost && publicPortRaw && database && user && password) {
+    const port = Number(publicPortRaw);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Public MySQL port is invalid.");
+    return { host: publicHost, port, user, password, database };
+  }
+
+  // Last resort: split MYSQL* variables are accepted only when their host is actually public.
   const host = envValue("MYSQLHOST") || envValue("MYSQL_HOST");
-  const database = envValue("MYSQLDATABASE") || envValue("MYSQL_DATABASE");
-  const user = envValue("MYSQLUSER") || envValue("MYSQL_USER");
-  const password = envValue("MYSQLPASSWORD") || envValue("MYSQL_PASSWORD");
   const rawPort = envValue("MYSQLPORT") || envValue("MYSQL_PORT") || "3306";
   const port = Number(rawPort);
-
   if (host && database && user && password) {
+    if (isRailwayPrivateHost(host)) {
+      throw new Error("Railway private MySQL hostname cannot be reached from Netlify; use MYSQL_PUBLIC_URL/TCP Proxy.");
+    }
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("MYSQL port is invalid.");
     return { host, port, user, password, database };
   }
 
-  const databaseUrl = envValue("MYSQL_URL") || envValue("DATABASE_URL");
-  if (databaseUrl) return parseDatabaseUrl(databaseUrl, "MYSQL_URL/DATABASE_URL");
-
-  throw new Error("Database environment variables are missing.");
+  throw new Error("Database environment variables are missing. Expected MYSQL_PUBLIC_URL (preferred).");
 }
 
 async function connectDatabase(config) {
