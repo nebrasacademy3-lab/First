@@ -1,0 +1,12 @@
+{
+  "name": "netlify-sickleave-inquiry",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "mysql2": "^3.23.3"
+  }
+}

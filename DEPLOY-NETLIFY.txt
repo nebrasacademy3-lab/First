@@ -1,0 +1,29 @@
+NETLIFY DEPLOY NOTES
+====================
+
+1) Deploy THIS PROJECT ROOT (the folder containing netlify.toml), not only the dist folder.
+   Netlify will publish dist/ and deploy netlify/functions/search-service.mjs.
+
+2) In Railway MySQL:
+   MySQL service -> Settings -> Networking -> add Public Access / TCP Proxy.
+   Railway will provide MYSQL_PUBLIC_URL.
+
+3) In Netlify:
+   Project configuration -> Environment variables
+   Add:
+     MYSQL_PUBLIC_URL = <the Railway MYSQL_PUBLIC_URL value>
+
+   Optional:
+     ALLOWED_ORIGINS = https://your-domain.example,https://your-site.netlify.app
+     LOG_INQUIRIES = true
+     MYSQL_SSL = false
+
+4) Redeploy after adding/changing environment variables.
+
+5) The browser URL is normalized by the published page to:
+   https://YOUR-DOMAIN/#/inquiries/slenquiry
+
+6) The old browser request path remains compatible:
+   /search_service.php
+   /folder/search_service.php
+   Both routes are handled by the Netlify Function, not by PHP.
